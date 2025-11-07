@@ -1,65 +1,90 @@
-const browserAppData = this.browser || this.chrome;
-const tabs = {};
-const inspectFile = 'inspect.js';
-const activeIcon = 'active-64.png';
-const defaultIcon = 'default-64.png';
+const browserAppData = chrome;
 
-const inspect = {
-  toggleActivate: (id, type, icon) => {
-    this.id = id;
-    browserAppData.tabs.executeScript(id, { file: inspectFile }, () => { browserAppData.tabs.sendMessage(id, { action: type }); });
-    browserAppData.browserAction.setIcon({ tabId: id, path: { 19: 'icons/' + icon } });
-  }
-};
+const inspectFile = "inspect.js";
+const activeIcon = "icons/active-64.png";
+const defaultIcon = "icons/default-64.png";
 
 function isSupportedProtocolAndFileType(urlString) {
-  if (!urlString) { return false; }
-  const supportedProtocols = ['https:', 'http:', 'file:'];
-  const notSupportedFiles = ['xml', 'pdf', 'rss'];
-  const extension = urlString.split('.').pop().split(/\#|\?/)[0];
-  const url = document.createElement('a');
-  url.href = urlString;
-  return supportedProtocols.indexOf(url.protocol) !== -1 && notSupportedFiles.indexOf(extension) === -1;
-}
+  if (!urlString) {
+    return false;
+  }
+  const supportedProtocols = ["https:", "http:", "file:"];
+  const notSupportedFiles = ["xml", "pdf", "rss"];
 
-function toggle(tab) {
-  if (isSupportedProtocolAndFileType(tab.url)) {
-    if (!tabs[tab.id]) {
-      tabs[tab.id] = Object.create(inspect);
-      inspect.toggleActivate(tab.id, 'activate', activeIcon);
-    } else {
-      inspect.toggleActivate(tab.id, 'deactivate', defaultIcon);
-      for (const tabId in tabs) {
-        if (tabId == tab.id) delete tabs[tabId];
-      }
-    }
+  try {
+    const url = new URL(urlString);
+    const extension = url.pathname.split(".").pop().toLowerCase();
+
+    return (
+      supportedProtocols.includes(url.protocol) &&
+      !notSupportedFiles.includes(extension)
+    );
+  } catch (e) {
+    return false;
   }
 }
 
-function deactivateItem(tab) {
-  if (tab[0]) {
-    if (isSupportedProtocolAndFileType(tab[0].url)) {
-      for (const tabId in tabs) {
-        if (tabId == tab[0].id) {
-          delete tabs[tabId];
-          inspect.toggleActivate(tab[0].id, 'deactivate', defaultIcon);
-        }
-      }
+async function toggleInspect(tabId, actionType, iconPath) {
+  try {
+    if (actionType === "activate") {
+      await browserAppData.scripting.executeScript({
+        target: { tabId: tabId },
+        files: [inspectFile],
+      });
     }
+
+    await browserAppData.tabs.sendMessage(tabId, { action: actionType });
+
+    await browserAppData.action.setIcon({ tabId: tabId, path: iconPath });
+
+    const badgeText = actionType === "activate" ? "ON" : "";
+    await browserAppData.action.setBadgeText({ tabId: tabId, text: badgeText });
+  } catch (e) {
+    console.error("XPath Error toggling script:", e.message);
   }
 }
 
-function getActiveTab() {
-  browserAppData.tabs.query({ active: true, currentWindow: true }, tab => { deactivateItem(tab); });
+async function toggle(tab) {
+  if (!tab.id || !isSupportedProtocolAndFileType(tab.url)) {
+    return;
+  }
+
+  const currentBadge = await browserAppData.action.getBadgeText({
+    tabId: tab.id,
+  });
+
+  if (currentBadge === "ON") {
+    toggleInspect(tab.id, "deactivate", defaultIcon);
+  } else {
+    toggleInspect(tab.id, "activate", activeIcon);
+  }
 }
 
-browserAppData.commands.onCommand.addListener(command => {
-  if (command === 'toggle-xpath') {
-    browserAppData.tabs.query({ active: true, currentWindow: true }, tab => {
-      toggle(tab[0]);
+async function onTabUpdated(tabId, changeInfo, tab) {
+  if (
+    changeInfo.status === "loading" &&
+    tab.url &&
+    isSupportedProtocolAndFileType(tab.url)
+  ) {
+    try {
+      await browserAppData.action.setBadgeText({ tabId: tabId, text: "" });
+      await browserAppData.action.setIcon({ tabId: tabId, path: defaultIcon });
+    } catch (e) {}
+  }
+}
+
+browserAppData.commands.onCommand.addListener(async (command) => {
+  if (command === "toggle-xpath") {
+    const [tab] = await browserAppData.tabs.query({
+      active: true,
+      currentWindow: true,
     });
+    if (tab) {
+      toggle(tab);
+    }
   }
 });
 
-browserAppData.tabs.onUpdated.addListener(getActiveTab);
-browserAppData.browserAction.onClicked.addListener(toggle);
+browserAppData.tabs.onUpdated.addListener(onTabUpdated);
+
+browserAppData.action.onClicked.addListener(toggle);

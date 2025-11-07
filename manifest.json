@@ -1,29 +1,30 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "xPath Finder",
-  "description": "Click on any element to get the xPath",
-  "homepage_url": "https://github.com/trembacz/xpath-finder",
-  "version": "1.0.2",
+  "description": "A browser extension (Manifest V3) to get the XPath of any element on a webpage.",
+  "version": "1.0.0",
   "icons": {
     "64": "icons/default-64.png"
   },
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
-  "browser_action": {
+  "action": {
     "default_icon": "icons/default-64.png",
-    "default_title": "Click on any element to get the xPath"
+    "default_title": "Click on any element to get the XPath"
   },
-  "content_scripts": [{
-    "all_frames": true,
-    "matches": ["<all_urls>"],
-    "js":["inspect.js"]
-  }],
+  "content_scripts": [
+    {
+      "all_frames": true,
+      "matches": ["<all_urls>"],
+      "js": ["inspect.js"]
+    }
+  ],
   "commands": {
     "toggle-xpath": {
       "suggested_key": {
-        "default": "Ctrl+Shift+U",
-        "mac": "Command+Shift+U"
+        "default": "Ctrl+Shift+Q",
+        "mac": "Command+Shift+Q"
       },
       "description": "Toggle plugin"
     }
@@ -31,5 +32,6 @@
   "options_ui": {
     "page": "options.html"
   },
-  "permissions": ["activeTab","<all_urls>", "storage"]
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"]
 }
