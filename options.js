@@ -47,7 +47,7 @@ function saveOptions(e) {
       const status = document.querySelector(".status");
       status.textContent = "Options saved.";
       updateAvailable && updateShortcut();
-      msetTimeout(() => {
+      setTimeout(() => {
         status.textContent = "";
       }, 1000);
     }
@@ -62,7 +62,7 @@ function restoreOptions() {
       clipboard: true,
       shortid: true,
       position: "bl",
-      shortcut: "U",
+      shortcut: "X",
     },
     (items) => {
       document.querySelector("#inspector").checked = items.inspector;

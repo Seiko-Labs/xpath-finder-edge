@@ -13,18 +13,11 @@
     "default_icon": "icons/default-64.png",
     "default_title": "Click on any element to get the XPath"
   },
-  "content_scripts": [
-    {
-      "all_frames": true,
-      "matches": ["<all_urls>"],
-      "js": ["inspect.js"]
-    }
-  ],
   "commands": {
     "toggle-xpath": {
       "suggested_key": {
-        "default": "Ctrl+Shift+Q",
-        "mac": "Command+Shift+Q"
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
       },
       "description": "Toggle plugin"
     }
