@@ -73,18 +73,6 @@ async function onTabUpdated(tabId, changeInfo, tab) {
   }
 }
 
-browserAppData.commands.onCommand.addListener(async (command) => {
-  if (command === "toggle-xpath") {
-    const [tab] = await browserAppData.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (tab) {
-      toggle(tab);
-    }
-  }
-});
-
 browserAppData.tabs.onUpdated.addListener(onTabUpdated);
 
 browserAppData.action.onClicked.addListener(toggle);
